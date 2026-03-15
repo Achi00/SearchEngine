@@ -1,0 +1,40 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Remove="Dataset\data-00000-of-00004.arrow" />
+    <None Remove="Dataset\data-00001-of-00004.arrow" />
+    <None Remove="Dataset\data-00002-of-00004.arrow" />
+    <None Remove="Dataset\data-00003-of-00004.arrow" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="Dataset\data-00000-of-00004.arrow">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Dataset\data-00001-of-00004.arrow">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Dataset\data-00002-of-00004.arrow">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Dataset\data-00003-of-00004.arrow">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Apache.Arrow" Version="22.1.0" />
+    <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Search.Application\Search.Application.csproj" />
+  </ItemGroup>
+
+</Project>
