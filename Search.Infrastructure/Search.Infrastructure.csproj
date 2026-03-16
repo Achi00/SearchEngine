@@ -7,34 +7,14 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <None Remove="Dataset\data-00000-of-00004.arrow" />
-    <None Remove="Dataset\data-00001-of-00004.arrow" />
-    <None Remove="Dataset\data-00002-of-00004.arrow" />
-    <None Remove="Dataset\data-00003-of-00004.arrow" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Content Include="Dataset\data-00000-of-00004.arrow">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="Dataset\data-00001-of-00004.arrow">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="Dataset\data-00002-of-00004.arrow">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="Dataset\data-00003-of-00004.arrow">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-  </ItemGroup>
-
-  <ItemGroup>
     <PackageReference Include="Apache.Arrow" Version="22.1.0" />
     <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.3" />
+    <PackageReference Include="Parquet.Net" Version="5.5.0" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Search.Application\Search.Application.csproj" />
+    <ProjectReference Include="..\Search.Domain\Search.Domain.csproj" />
   </ItemGroup>
 
 </Project>

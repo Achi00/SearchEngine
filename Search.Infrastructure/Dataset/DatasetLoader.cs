@@ -1,4 +1,5 @@
 ﻿using Search.Application.Dtos.Dataset;
+using Search.Domain.Enum;
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Text.Json;
@@ -16,13 +17,14 @@ namespace Search.Infrastructure.Dataset
             _factory = factory;
         }
 
-        // downloading .arrow files from huggingface and loading in project dir
+        // downloading .parquet files from huggingface and loading in project dir
         // parallel file download
         // Dataset: https://huggingface.co/datasets/milistu/AMAZON-Products-2023
         public async Task<DatasetLoadResultResponse> LoadDatasetAsync()
         {
             var client = _factory.CreateClient();
-            var jsonFilesData = await client.GetStringAsync("https://huggingface.co/api/datasets/milistu/AMAZON-Products-2023/tree/main").ConfigureAwait(false);
+            // get file list in json
+            var jsonFilesData = await client.GetStringAsync("https://huggingface.co/api/datasets/milistu/AMAZON-Products-2023/tree/refs%2Fconvert%2Fparquet/default/train").ConfigureAwait(false);
 
             var files = JsonSerializer.Deserialize<List<HuggingFaceDatasetResponse>>(jsonFilesData);
 
@@ -39,38 +41,43 @@ namespace Search.Infrastructure.Dataset
             int skipped = 0;
 
             var failed = new ConcurrentBag<string>();
-
-            await Parallel.ForEachAsync(files.Where(f => f.path.EndsWith(".arrow")),
-            new ParallelOptions { MaxDegreeOfParallelism = 4 },
-            async (file, _) =>
-            {
-                var url = $"https://huggingface.co/datasets/milistu/AMAZON-Products-2023/resolve/main/{file.path}";
-
-                var localPath = Path.Combine(DatasetDirectory, Path.GetFileName(file.path));
-                // slip if file already in dir
-                if (File.Exists(localPath))
+            // only extract .parquet files
+            await Parallel.ForEachAsync(
+                files.Where(f => f.path.EndsWith(nameof(FileExtension.Parquet).ToLower())),
+                new ParallelOptions { MaxDegreeOfParallelism = 4 },
+                async (file, _) =>
                 {
-                    // ensure thread safe increment
-                    Interlocked.Increment(ref skipped);
-                    Console.WriteLine($"Skipping {file.path}, already exists.");
-                    return;
-                }
-                try
-                {
-                    Console.WriteLine($"Download of {file.path} Started!");
-                    Console.WriteLine($"File Size: {(file.size / 1024).ToString("F2")} Mb");
+                    var fileName = Path.GetFileName(file.path);
 
-                    await DownloadFileAsync(url, localPath);
-                    
-                    Interlocked.Increment(ref downloaded);
-                    Console.WriteLine($"Download of {file.path} Ended!");
+                    var url =
+                    $"https://huggingface.co/datasets/milistu/AMAZON-Products-2023/resolve/refs%2Fconvert%2Fparquet/default/train/{fileName}";
+
+                    var localPath = Path.Combine(DatasetDirectory, fileName);
+                    // slip if file already in dir
+                    if (File.Exists(localPath))
+                    {
+                        // ensure thread safe increment
+                        Interlocked.Increment(ref skipped);
+                        Console.WriteLine($"Skipping {file.path}, already exists.");
+                        return;
+                    }
+                    try
+                    {
+                        Console.WriteLine($"Download of {file.path} Started!");
+                        Console.WriteLine($"File Size: {(file.size / 1024).ToString("F2")} Mb");
+
+                        await DownloadFileAsync(client, url, localPath);
+                        
+                        Interlocked.Increment(ref downloaded);
+                        Console.WriteLine($"Download of {file.path} Ended!");
+                    }
+                    catch (Exception ex)
+                    {
+                        failed.Add(file.path);
+                        Console.WriteLine($"Failed to download {file.path}: {ex.Message}");
+                    }
                 }
-                catch (Exception ex)
-                {
-                    failed.Add(file.path);
-                    Console.WriteLine($"Failed to download {file.path}: {ex.Message}");
-                }
-            });
+            );
 
             return new DatasetLoadResultResponse
             {
@@ -80,10 +87,8 @@ namespace Search.Infrastructure.Dataset
             };
         }
 
-        private async Task DownloadFileAsync(string url, string localPath)
+        private async Task DownloadFileAsync(HttpClient client, string url, string localPath)
         {
-            var client = _factory.CreateClient();
-
             using var response = await client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead);
             response.EnsureSuccessStatusCode();
 
