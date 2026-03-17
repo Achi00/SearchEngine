@@ -25,7 +25,7 @@ namespace Search.Persistance.Context
                 .AddJsonFile("appsettings.Development.json", optional: true)
                 .Build();
 
-            var connectionString = configuration.GetConnectionString("Default");
+            var connectionString = configuration.GetConnectionString(nameof(ConnectionString.Default));
 
             Console.WriteLine($"Using basePath: {Path.GetFullPath(basePath)}");
             Console.WriteLine($"ConnectionString: {connectionString}");

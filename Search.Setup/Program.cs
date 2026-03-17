@@ -20,17 +20,17 @@ var host = Host.CreateDefaultBuilder(args)
         services.Configure<DatasetOptions>(context.Configuration.GetSection(DatasetOptions.SectionName));
 
         services.AddDbContext<SearchDbContext>(opts =>
-            opts.UseSqlServer(context.Configuration.GetConnectionString("Default")));
+            opts.UseSqlServer(context.Configuration.GetConnectionString(nameof(ConnectionString.Default))));
 
-        services.AddScoped<IProductSeeder, ProductSeeder>();
         services.AddScoped<ICategoryRepository, CategoryRepository>();
         services.AddScoped<IProductSeeder, ProductSeeder>();
-        
+        services.AddScoped<IProductRepository, ProductRepository>();
+
         services.AddScoped<IUnitOfWork, UnitOfWork>();
 
         services.AddHttpClient();
         services.AddTransient<DatasetLoader>();
-        services.AddTransient<ParquetFileReader>();
+        services.AddScoped<ParquetFileReader>();
 
     })
     .Build();
@@ -43,7 +43,8 @@ Console.WriteLine($"Downloaded: {results.Downloaded}, Skipped: {results.Skipped}
 // IsSuccess, determined by failed count
 if (results.IsSuccess)
 {
+    using var scope = host.Services.CreateScope();
     // transform .parquet and seed data into sql database
-    var reader = host.Services.GetRequiredService<ParquetFileReader>();
+    var reader = scope.ServiceProvider.GetRequiredService<ParquetFileReader>();
     await reader.ReadFiles();
 }

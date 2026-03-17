@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Search.Persistance.Context;
 
@@ -11,9 +12,11 @@ using Search.Persistance.Context;
 namespace Search.Persistance.Migrations
 {
     [DbContext(typeof(SearchDbContext))]
-    partial class SearchDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260317215909_AddNullables")]
+    partial class AddNullables
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

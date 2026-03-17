@@ -3,10 +3,12 @@
     <Project Path="../Search.Application/Search.Application.csproj" Id="bb39aa24-7059-490b-8944-87c863c5357c" />
     <Project Path="../Search.Domain/Search.Domain.csproj" Id="1024dbb6-d510-416b-a867-6aac6083d6e7" />
     <Project Path="../Search.Embedding/Search.ML.csproj" />
-    <Project Path="Search.Setup.csproj" />
   </Folder>
   <Folder Name="/Infrastructure/">
     <Project Path="../Search.Infrastructure/Search.Infrastructure.csproj" Id="588ba14e-7649-4d51-9954-0dc67ad6ebb2" />
     <Project Path="../Search.Persistance/Search.Persistance.csproj" Id="f551f726-58ad-4b2f-9c2d-8bcecca48325" />
+  </Folder>
+  <Folder Name="/Presentation/">
+    <Project Path="Search.Setup.csproj" />
   </Folder>
 </Solution>

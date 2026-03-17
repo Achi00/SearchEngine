@@ -1,6 +1,8 @@
 ﻿using Microsoft.Extensions.Options;
 using Parquet;
 using Parquet.Schema;
+using Search.Application.Dtos.Dataset;
+using Search.Application.Interfaces.Setup;
 using Search.Domain.Entity.Products;
 using System.Data;
 using System.Text.Json;
@@ -10,10 +12,12 @@ namespace Search.Infrastructure.Dataset.Reader
     public class ParquetFileReader
     {
         private readonly DatasetOptions _options;
+        private readonly IProductSeeder _seeder;
 
-        public ParquetFileReader(IOptions<DatasetOptions> options)
+        public ParquetFileReader(IOptions<DatasetOptions> options, IProductSeeder seeder)
         {
             _options = options.Value;
+            _seeder = seeder;
         }
 
         // read parquet files and create tables
@@ -64,11 +68,11 @@ namespace Search.Infrastructure.Dataset.Reader
                 // already in simpleColumns["details"] as raw strings
 
                 int rowCount = simpleColumns["parent_asin"].Length;
-                var batch = new List<Product>(rowCount);
+                var batch = new List<ProductSeedDto>(rowCount);
 
                 for (int r = 0; r < rowCount; r++)
                 {
-                    var product = new Product
+                    var product = new ProductSeedDto
                     {
                         Id = Guid.NewGuid(),
                         Asin = GetString(simpleColumns, "parent_asin", r),
@@ -84,27 +88,15 @@ namespace Search.Infrastructure.Dataset.Reader
                             .FromUnixTimeMilliseconds(GetLong(simpleColumns, "date_first_available", r))
                             .UtcDateTime,
 
-                        // categories: List<string> -> ProductCategory via Category lookup
-                        Categories = (categoriesPerRow.Count > r ? categoriesPerRow[r] : [])
-                            .Select(name => new ProductCategory
-                            {
-                                Category = new Category { Name = name }
-                            })
-                            .ToList(),
-
-                        // features: List<string> → ProductFeature rows
-                        Features = (featuresPerRow.Count > r ? featuresPerRow[r] : [])
-                            .Select(text => new ProductFeature { Text = text })
-                            .ToList(),
-
-                        // details: JSON string → ProductDetail rows
-                        Details = ParseDetails(GetString(simpleColumns, "details", r))
+                        Categories = categoriesPerRow.Count > r ? categoriesPerRow[r] : [],
+                        Features = featuresPerRow.Count > r ? featuresPerRow[r] : [],
+                        Details = ParseDetailsAstuples(GetString(simpleColumns, "details", r))
                     };
 
                     batch.Add(product);
                 }
 
-                //await _seeder.BulkInsertAsync(batch);
+                await _seeder.BulkInsertAsync(batch);
                 Console.WriteLine($"  Inserted row group {i + 1}/{reader.RowGroupCount}");
             }
         }
@@ -144,7 +136,7 @@ namespace Search.Infrastructure.Dataset.Reader
         }
 
         // details comes as key value pair: {"Brand":"Sony","Color":"Black"}
-        private static List<ProductDetail> ParseDetails(string? raw)
+        private static List<(string Key, string Value)> ParseDetailsAstuples(string? raw)
         {
             if (string.IsNullOrWhiteSpace(raw)) return [];
 
@@ -152,13 +144,12 @@ namespace Search.Infrastructure.Dataset.Reader
             {
                 var dict = JsonSerializer.Deserialize<Dictionary<string, string>>(raw);
                 return dict?
-                    .Select(kv => new ProductDetail { Key = kv.Key, Value = kv.Value })
+                    .Select(kv => (kv.Key, kv.Value))
                     .ToList() ?? [];
             }
             catch
             {
-                // invalid JSON in source data, skip
-                return []; 
+                return [];
             }
         }
 

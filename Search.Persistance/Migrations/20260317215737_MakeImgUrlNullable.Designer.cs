@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Search.Persistance.Context;
 
@@ -11,9 +12,11 @@ using Search.Persistance.Context;
 namespace Search.Persistance.Migrations
 {
     [DbContext(typeof(SearchDbContext))]
-    partial class SearchDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260317215737_MakeImgUrlNullable")]
+    partial class MakeImgUrlNullable
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -46,6 +49,7 @@ namespace Search.Persistance.Migrations
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Asin")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<double>("AverageRating")
@@ -55,15 +59,18 @@ namespace Search.Persistance.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<string>("Description")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("FileName")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("ImageUrl")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("MainCategory")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<decimal>("Price")
@@ -73,9 +80,11 @@ namespace Search.Persistance.Migrations
                         .HasColumnType("int");
 
                     b.Property<string>("Store")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Title")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");

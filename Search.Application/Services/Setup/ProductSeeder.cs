@@ -18,7 +18,7 @@ namespace Search.Application.Services.Setup
         {
             _unitOfWork = unitOfWork;
             _categoryRepository = categoryRepository;
-            _categoryRepository = categoryRepository;
+            _productRepository = productRepository;
         }
 
         public async Task BulkInsertAsync(List<ProductSeedDto> dtos, CancellationToken ct = default)
