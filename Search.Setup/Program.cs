@@ -1,8 +1,16 @@
-﻿using Microsoft.Extensions.Configuration;
+﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Search.Application.Interfaces;
+using Search.Application.Interfaces.Repositories;
+using Search.Application.Interfaces.Setup;
+using Search.Application.Services.Setup;
 using Search.Infrastructure.Dataset;
 using Search.Infrastructure.Dataset.Reader;
+using Search.Infrastructure.Repositories;
+using Search.Persistance;
+using Search.Persistance.Context;
 
 //Run.RunBenchmark();
 
@@ -10,9 +18,20 @@ var host = Host.CreateDefaultBuilder(args)
     .ConfigureServices((context, services) =>
     {
         services.Configure<DatasetOptions>(context.Configuration.GetSection(DatasetOptions.SectionName));
+
+        services.AddDbContext<SearchDbContext>(opts =>
+            opts.UseSqlServer(context.Configuration.GetConnectionString("Default")));
+
+        services.AddScoped<IProductSeeder, ProductSeeder>();
+        services.AddScoped<ICategoryRepository, CategoryRepository>();
+        services.AddScoped<IProductSeeder, ProductSeeder>();
+        
+        services.AddScoped<IUnitOfWork, UnitOfWork>();
+
         services.AddHttpClient();
         services.AddTransient<DatasetLoader>();
         services.AddTransient<ParquetFileReader>();
+
     })
     .Build();
 

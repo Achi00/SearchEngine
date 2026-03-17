@@ -15,6 +15,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Search.Application\Search.Application.csproj" />
     <ProjectReference Include="..\Search.Domain\Search.Domain.csproj" />
+    <ProjectReference Include="..\Search.Persistance\Search.Persistance.csproj" />
   </ItemGroup>
 
 </Project>
