@@ -2,12 +2,14 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Qdrant.Client;
 using Search.Application.Interfaces;
 using Search.Application.Interfaces.Repositories;
 using Search.Application.Interfaces.Setup;
 using Search.Application.Services.Setup;
 using Search.Infrastructure.Dataset;
 using Search.Infrastructure.Dataset.Reader;
+using Search.Infrastructure.Qdrant;
 using Search.Infrastructure.Repositories;
 using Search.Persistance;
 using Search.Persistance.Context;
@@ -25,6 +27,8 @@ var host = Host.CreateDefaultBuilder(args)
         services.AddScoped<ICategoryRepository, CategoryRepository>();
         services.AddScoped<IProductSeeder, ProductSeeder>();
         services.AddScoped<IProductRepository, ProductRepository>();
+        services.AddSingleton<QdrantClient>(sp => new QdrantClient("localhost", 6334));
+        services.AddTransient<QdrantSetup>();
 
         services.AddScoped<IUnitOfWork, UnitOfWork>();
 
@@ -44,7 +48,20 @@ Console.WriteLine($"Downloaded: {results.Downloaded}, Skipped: {results.Skipped}
 if (results.IsSuccess)
 {
     using var scope = host.Services.CreateScope();
-    // transform .parquet and seed data into sql database
-    var reader = scope.ServiceProvider.GetRequiredService<ParquetFileReader>();
-    await reader.ReadFiles();
+    // create collections in Qdrant
+    var qdrantSetup = scope.ServiceProvider.GetRequiredService<QdrantSetup>();
+    await qdrantSetup.InitializeAsync();
+    // only seed if Products table is empty
+    var dbContext = scope.ServiceProvider.GetRequiredService<SearchDbContext>();
+    var hasProducts = await dbContext.Products.AnyAsync();
+    if (!hasProducts)
+    {
+        // read .parquet and seed data into sql database
+        var reader = scope.ServiceProvider.GetRequiredService<ParquetFileReader>();
+        await reader.ReadFiles();
+    }
+    else
+    {
+        Console.WriteLine("Database already seeded, skipping.");
+    }
 }
