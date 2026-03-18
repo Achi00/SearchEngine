@@ -20,6 +20,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Search.Embedding\Search.ML.csproj" />
     <ProjectReference Include="..\Search.Infrastructure\Search.Infrastructure.csproj" />
     <ProjectReference Include="..\Search.Persistance\Search.Persistance.csproj" />
   </ItemGroup>
