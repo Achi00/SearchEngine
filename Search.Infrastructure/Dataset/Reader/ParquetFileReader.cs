@@ -145,10 +145,37 @@ namespace Search.Infrastructure.Dataset.Reader
 
             try
             {
-                var dict = JsonSerializer.Deserialize<Dictionary<string, string>>(raw);
-                return dict?
-                    .Select(kv => (kv.Key, kv.Value))
-                    .ToList() ?? [];
+                var result = new List<(string, string)>();
+
+                // strip outer braces
+                var content = raw.Trim();
+                if (content.StartsWith("{")) content = content[1..];
+                if (content.EndsWith("}")) content = content[..^1];
+
+                // extract top-level key-value pairs
+                // handles nested dicts as raw string values
+                int i = 0;
+                while (i < content.Length)
+                {
+                    // skip whitespace and commas
+                    while (i < content.Length && (content[i] == ',' || content[i] == ' ')) i++;
+                    if (i >= content.Length) break;
+
+                    // read key (always a quoted string)
+                    if (content[i] != '\'') break;
+                    var key = ReadQuotedString(content, ref i);
+
+                    // skip colon
+                    while (i < content.Length && (content[i] == ':' || content[i] == ' ')) i++;
+
+                    // read value (string, number, or nested dict)
+                    var value = ReadValue(content, ref i);
+
+                    if (key != null && value != null)
+                        result.Add((key, value));
+                }
+
+                return result;
             }
             catch
             {
@@ -156,13 +183,58 @@ namespace Search.Infrastructure.Dataset.Reader
             }
         }
 
+        private static string? ReadQuotedString(string content, ref int i)
+        {
+            if (i >= content.Length || content[i] != '\'') return null;
+            i++; // skip opening quote
+
+            var sb = new System.Text.StringBuilder();
+            while (i < content.Length)
+            {
+                if (content[i] == '\'' && (i + 1 >= content.Length || content[i + 1] != '\''))
+                {
+                    i++; // skip closing quote
+                    break;
+                }
+                sb.Append(content[i++]);
+            }
+            return sb.ToString();
+        }
+
+        private static string? ReadValue(string content, ref int i)
+        {
+            if (i >= content.Length) return null;
+
+            // nested dict -> serialize as raw string
+            if (content[i] == '{')
+            {
+                int depth = 0;
+                int start = i;
+                while (i < content.Length)
+                {
+                    if (content[i] == '{') depth++;
+                    else if (content[i] == '}') depth--;
+                    i++;
+                    if (depth == 0) break;
+                }
+                return content[start..i];
+            }
+
+            // quoted string value
+            if (content[i] == '\'')
+                return ReadQuotedString(content, ref i);
+
+            // number or unquoted value (True, False, None)
+            int numStart = i;
+            while (i < content.Length && content[i] != ',' && content[i] != '}')
+                i++;
+            return content[numStart..i].Trim();
+        }
+
         private static string? GetString(Dictionary<string, Array> cols, string key, int r)
             => cols.TryGetValue(key, out var arr) ? arr.GetValue(r)?.ToString() : null;
 
         private static double GetDouble(Dictionary<string, Array> cols, string key, int r)
             => cols.TryGetValue(key, out var arr) && arr.GetValue(r) is double d ? d : 0;
-
-        private static long GetLong(Dictionary<string, Array> cols, string key, int r)
-            => cols.TryGetValue(key, out var arr) && arr.GetValue(r) is long l ? l : 0;
     }
 }
