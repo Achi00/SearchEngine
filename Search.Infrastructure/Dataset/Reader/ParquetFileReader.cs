@@ -84,11 +84,14 @@ namespace Search.Infrastructure.Dataset.Reader
                         AverageRating = GetDouble(simpleColumns, "average_rating", r),
                         RatingNumber = (int)GetDouble(simpleColumns, "rating_number", r),
                         Price = (decimal)GetDouble(simpleColumns, "price", r),
-                        DateFirstAvailable = DateTimeOffset
-                            .FromUnixTimeMilliseconds(GetLong(simpleColumns, "date_first_available", r))
-                            .UtcDateTime,
+                        Image = GetString(simpleColumns, "image", r),
+                        //DateFirstAvailable = DateTimeOffset
+                        //    .FromUnixTimeMilliseconds(GetLong(simpleColumns, "date_first_available", r))
+                        //    .UtcDateTime,
 
-                        Categories = categoriesPerRow.Count > r ? categoriesPerRow[r] : [],
+                        Categories = (categoriesPerRow.Count > r ? categoriesPerRow[r] : [])
+                            .Distinct(StringComparer.OrdinalIgnoreCase)
+                            .ToList(),
                         Features = featuresPerRow.Count > r ? featuresPerRow[r] : [],
                         Details = ParseDetailsAstuples(GetString(simpleColumns, "details", r))
                     };

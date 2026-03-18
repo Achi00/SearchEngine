@@ -37,8 +37,8 @@ namespace Search.Application.Services.Setup
                 AverageRating = dto.AverageRating,
                 RatingNumber = dto.RatingNumber,
                 Price = dto.Price,
-                DateFirstAvailable = dto.DateFirstAvailable,
-                ImageUrl = dto.ImageUrl,
+                //DateFirstAvailable = dto.DateFirstAvailable,
+                Image = dto.Image,
 
                 Features = dto.Features
                     .Select(text => new ProductFeature { Text = text })
@@ -47,15 +47,17 @@ namespace Search.Application.Services.Setup
                 Details = dto.Details
                     .Select(kv => new ProductDetail { Key = kv.Key, Value = kv.Value })
                     .ToList(),
-
+                // choose distinct, otherwise will cause tracking error of same key value for {'ProductId', 'CategoryId'}
                 Categories = dto.Categories
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .Where(name => _categoryCache.ContainsKey(name))
                     .Select(name => new ProductCategory { CategoryId = _categoryCache[name] })
                     .ToList()
 
             }).ToList();
 
             await _productRepository.AddRangeAsync(products, ct);
-            await _unitOfWork.SaveChangesAsync(ct);
+            //await _unitOfWork.SaveChangesAsync(ct);
         }
 
         private async Task ResolveCategoriesAsync(List<ProductSeedDto> dtos, CancellationToken ct)

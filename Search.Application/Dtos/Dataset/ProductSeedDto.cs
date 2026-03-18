@@ -3,17 +3,18 @@
     public sealed class ProductSeedDto
     {
         public Guid Id { get; set; }
-        public string Asin { get; set; }
-        public string Title { get; set; }
-        public string Description { get; set; }
-        public string FileName { get; set; }
-        public string MainCategory { get; set; }
-        public string Store { get; set; }
+        public string? Asin { get; set; }
+        public string? Title { get; set; }
+        public string? Description { get; set; }
+        public string? FileName { get; set; }
+        public string? MainCategory { get; set; }
+        public string? Store { get; set; }
         public double AverageRating { get; set; }
         public int RatingNumber { get; set; }
         public decimal Price { get; set; }
-        public DateTime DateFirstAvailable { get; set; }
-        public string? ImageUrl { get; set; }
+        //public DateTime DateFirstAvailable { get; set; }
+        // image url
+        public string? Image { get; set; }
 
         public List<string> Categories { get; set; } = [];
         public List<string> Features { get; set; } = [];
