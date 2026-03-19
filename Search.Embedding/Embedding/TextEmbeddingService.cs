@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Options;
+﻿using Helpers;
+using Microsoft.Extensions.Options;
 using Microsoft.ML.OnnxRuntime;
 using Microsoft.ML.OnnxRuntime.Tensors;
 using Microsoft.ML.Tokenizers;
@@ -18,7 +19,7 @@ namespace Embedding
      * merges https://huggingface.co/openai/clip-vit-large-patch14/resolve/main/merges.txt -OutFile merges.txt
      * wget https://huggingface.co/openai/clip-vit-large-patch14/resolve/main/vocab.json -OutFile vocab.json
      */
-    public class ClipTextEmbeddingService : ITextEmbeddingService, IDisposable
+    public class TextEmbeddingService : ITextEmbeddingService, IDisposable
     {
         private readonly InferenceSession _session;
         private readonly Tokenizer _tokenizer;
@@ -26,10 +27,8 @@ namespace Embedding
         private const int SotToken = 49406; // <|startoftext|>
         private const int EotToken = 49407; // <|endoftext|>
 
-        public ClipTextEmbeddingService(IOptions<MLOptions> options)
+        public TextEmbeddingService(IOptions<MLOptions> options)
         {
-            Console.WriteLine("Models path: " + options.Value.ModelsPath);
-
             var modelPath = Path.Combine(options.Value.ModelsPath, "text_model.onnx");
             var tokenizerPath = Path.Combine(options.Value.ModelsPath, "vocab.json");
             var mergesPath = Path.Combine(options.Value.ModelsPath, "merges.txt");
@@ -55,6 +54,7 @@ namespace Embedding
                 inputIds[i + 1] = tokens[i];
 
             inputIds[copyCount + 1] = EotToken;
+
             // remaining positions stay 0 (padding)
 
             var tensor = new DenseTensor<long>(inputIds, new[] { 1, MaxTokenLength });
@@ -66,22 +66,13 @@ namespace Embedding
 
             using var results = _session.Run(inputs);
             var embedding = results.First(r => r.Name == "text_embeds").AsEnumerable<float>().ToArray();
-            // for image embeddings
-            /*
-             * using var results = _session.Run(inputs);
-             * var embedding = results.First(r => r.Name == "image_embeds")
-             * .AsEnumerable<float>().ToArray(); 
-             */
 
-            return Task.FromResult(Normalize(embedding));
+            return Task.FromResult(EmbeddingHelper.Normalize(embedding));
         }
 
-        private static float[] Normalize(float[] vector)
+        public void Dispose()
         {
-            var magnitude = MathF.Sqrt(vector.Sum(x => x * x));
-            return magnitude == 0 ? vector : vector.Select(x => x / magnitude).ToArray();
+            _session.Dispose();
         }
-
-        public void Dispose() => _session.Dispose();
     }
 }

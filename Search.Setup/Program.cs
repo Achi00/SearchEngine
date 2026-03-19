@@ -31,7 +31,8 @@ var host = Host.CreateDefaultBuilder(args)
 
         services.Configure<DatasetOptions>(context.Configuration.GetSection(DatasetOptions.SectionName));
 
-        services.AddScoped<ITextEmbeddingService, ClipTextEmbeddingService>();
+        services.AddScoped<ITextEmbeddingService, TextEmbeddingService>();
+        services.AddScoped<IImageEmbeddingService, ImageEmbeddingService>();
         services.AddScoped<ICategoryRepository, CategoryRepository>();
         services.AddScoped<IProductSeeder, ProductSeeder>();
         services.AddScoped<IProductRepository, ProductRepository>();
@@ -61,13 +62,25 @@ if (results.IsSuccess)
     var qdrantSetup = scope.ServiceProvider.GetRequiredService<QdrantSetup>();
     await qdrantSetup.InitializeAsync();
 
-    // Temp: test embeddings
+    // Temp: text embeddings
     var textEmbedder = scope.ServiceProvider.GetRequiredService<ITextEmbeddingService>();
     var embedding = await textEmbedder.EmbedAsync("red electric guitar");
 
     Console.WriteLine($"Embedding dims: {embedding.Length}");
     Console.WriteLine($"First 5 values: {string.Join(", ", embedding.Take(5))}");
     Console.WriteLine($"Magnitude: {MathF.Sqrt(embedding.Sum(x => x * x))}");
+
+    // Temp: image embeddings
+    var imageEmbedder = scope.ServiceProvider.GetRequiredService<IImageEmbeddingService>();
+    var httpClient = scope.ServiceProvider.GetRequiredService<IHttpClientFactory>().CreateClient();
+    var imageBytes = await httpClient.GetByteArrayAsync("https://m.media-amazon.com/images/I/71m-Vs8ULhL._AC_UL1500_.jpg");
+
+    var imageEmbedding = await imageEmbedder.EmbedAsync(imageBytes);
+
+    Console.WriteLine($"Image embedding dims: {imageEmbedding.Length}");
+    Console.WriteLine($"First 5 values: {string.Join(", ", imageEmbedding.Take(5))}");
+    Console.WriteLine($"Magnitude: {MathF.Sqrt(imageEmbedding.Sum(x => x * x))}");
+
     // only seed if Products table is empty
     var dbContext = scope.ServiceProvider.GetRequiredService<SearchDbContext>();
     var hasProducts = await dbContext.Products.AnyAsync();
@@ -82,20 +95,3 @@ if (results.IsSuccess)
         Console.WriteLine("Database already seeded, skipping.");
     }
 }
-
-// temp: test models and token files
-//var textSession = new InferenceSession("D:\\Csharp\\ImageSearch\\Search.Embedding\\Models\\text_model.onnx");
-//Console.WriteLine("TEXT INPUTS:");
-//foreach (var input in textSession.InputMetadata)
-//    Console.WriteLine($"  {input.Key} → shape: [{string.Join(",", input.Value.Dimensions)}]");
-//Console.WriteLine("TEXT OUTPUTS:");
-//foreach (var output in textSession.OutputMetadata)
-//    Console.WriteLine($"  {output.Key}");
-
-//var imageSession = new InferenceSession("D:\\Csharp\\ImageSearch\\Search.Embedding\\Models\\vision_model.onnx");
-//Console.WriteLine("IMAGE INPUTS:");
-//foreach (var input in imageSession.InputMetadata)
-//    Console.WriteLine($"  {input.Key} → shape: [{string.Join(",", input.Value.Dimensions)}]");
-//Console.WriteLine("IMAGE OUTPUTS:");
-//foreach (var output in imageSession.OutputMetadata)
-//    Console.WriteLine($"  {output.Key}");
