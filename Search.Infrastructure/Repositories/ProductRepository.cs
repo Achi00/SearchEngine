@@ -1,4 +1,5 @@
 ﻿using Microsoft.Data.SqlClient;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Search.Application.Interfaces.Repositories;
 using Search.Domain.Entity.Products;
@@ -17,6 +18,21 @@ namespace Search.Infrastructure.Repositories
         {
             _context = context;
             _connectionString = configuration.GetConnectionString(nameof(ConnectionString.Default))!;
+        }
+
+        public async Task<List<Product>> GetUnembeddedBatchAsync(int batchSize, CancellationToken ct = default)
+        {
+            return await _context.Products
+                .Where(p => !p.IsEmbedded && p.Image != null)
+                .Take(batchSize)
+                .ToListAsync(ct);
+        }
+
+        public async Task MarkAsEmbeddedAsync(List<Guid> productIds, CancellationToken ct = default)
+        {
+            await _context.Products
+                .Where(p => productIds.Contains(p.Id))
+                .ExecuteUpdateAsync(s => s.SetProperty(p => p.IsEmbedded, true), ct);
         }
 
         public async Task AddRangeAsync(List<Product> products, CancellationToken ct = default)

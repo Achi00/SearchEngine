@@ -14,10 +14,7 @@ namespace Embedding
     public class ImageEmbeddingService : IImageEmbeddingService, IDisposable
     {
         private readonly InferenceSession _session;
-        private readonly Tokenizer _tokenizer;
-        private const int MaxTokenLength = 77;
-        private const int SotToken = 49406; // <|startoftext|>
-        private const int EotToken = 49407; // <|endoftext|>
+        private readonly SemaphoreSlim _lock = new(1, 1);
 
         public ImageEmbeddingService(IOptions<MLOptions> options)
         {
@@ -28,11 +25,9 @@ namespace Embedding
             var sessionOptions = new SessionOptions();
             sessionOptions.AppendExecutionProvider_DML(0);
             _session = new InferenceSession(modelPath, sessionOptions);
-
-            _tokenizer = BpeTokenizer.Create(tokenizerPath, mergesPath);
         }
 
-        public Task<float[]> EmbedAsync(byte[] imageBytes, CancellationToken ct = default)
+        public async Task<float[]> EmbedAsync(byte[] imageBytes, CancellationToken ct = default)
         {
             var tensor = PreprocessImage(imageBytes);
 
@@ -41,15 +36,25 @@ namespace Embedding
                 NamedOnnxValue.CreateFromTensor("pixel_values", tensor)
             };
 
-            using var results = _session.Run(inputs);
-            var embedding = results.First(r => r.Name == "image_embeds").AsEnumerable<float>().ToArray();
+            await _lock.WaitAsync(ct);
 
-            return Task.FromResult(EmbeddingHelper.Normalize(embedding));
+            try
+            {
+                using var results = _session.Run(inputs);
+                var embedding = results.First(r => r.Name == "image_embeds").AsEnumerable<float>().ToArray();
+
+                return EmbeddingHelper.Normalize(embedding);
+            }
+            finally
+            {
+                _lock.Release();
+            }
         }
 
         public void Dispose()
         {
             _session.Dispose();
+            _lock.Dispose();
         }
 
         private static readonly float[] Mean = [0.48145466f, 0.4578275f, 0.40821073f];

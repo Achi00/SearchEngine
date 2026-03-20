@@ -27,6 +27,8 @@ namespace Embedding
         private const int SotToken = 49406; // <|startoftext|>
         private const int EotToken = 49407; // <|endoftext|>
 
+        private readonly SemaphoreSlim _lock = new(1, 1);
+
         public TextEmbeddingService(IOptions<MLOptions> options)
         {
             var modelPath = Path.Combine(options.Value.ModelsPath, "text_model.onnx");
@@ -40,7 +42,7 @@ namespace Embedding
             _tokenizer = BpeTokenizer.Create(tokenizerPath, mergesPath);
         }
 
-        public Task<float[]> EmbedAsync(string text, CancellationToken ct = default)
+        public async Task<float[]> EmbedAsync(string text, CancellationToken ct = default)
         {
             // tokenize
             var tokens = _tokenizer.EncodeToIds(text.ToLower());
@@ -64,15 +66,24 @@ namespace Embedding
                 NamedOnnxValue.CreateFromTensor("input_ids", tensor)
             };
 
-            using var results = _session.Run(inputs);
-            var embedding = results.First(r => r.Name == "text_embeds").AsEnumerable<float>().ToArray();
+            await _lock.WaitAsync(ct);
 
-            return Task.FromResult(EmbeddingHelper.Normalize(embedding));
+            try
+            {
+                using var results = _session.Run(inputs);
+                var embedding = results.First(r => r.Name == "text_embeds").AsEnumerable<float>().ToArray();
+                return EmbeddingHelper.Normalize(embedding);
+            }
+            finally
+            {
+                _lock.Release();
+            }
         }
 
         public void Dispose()
         {
             _session.Dispose();
+            _lock.Dispose();
         }
     }
 }

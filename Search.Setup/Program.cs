@@ -6,12 +6,14 @@ using Microsoft.Extensions.Hosting;
 using Qdrant.Client;
 using Search.Application.Interfaces;
 using Search.Application.Interfaces.ML;
+using Search.Application.Interfaces.Qdrant;
 using Search.Application.Interfaces.Repositories;
 using Search.Application.Interfaces.Setup;
 using Search.Application.Options;
 using Search.Application.Services.Setup;
 using Search.Infrastructure.Dataset;
 using Search.Infrastructure.Dataset.Reader;
+using Search.Infrastructure.ML;
 using Search.Infrastructure.Qdrant;
 using Search.Infrastructure.Repositories;
 using Search.Persistance;
@@ -35,6 +37,9 @@ var host = Host.CreateDefaultBuilder(args)
         services.AddScoped<ICategoryRepository, CategoryRepository>();
         services.AddScoped<IProductSeeder, ProductSeeder>();
         services.AddScoped<IProductRepository, ProductRepository>();
+
+        services.AddScoped<IEmbeddingPipeline, EmbeddingPipeline>();
+        services.AddScoped<IQdrantService, QdrantServices>();
 
         services.AddSingleton<QdrantClient>(sp => new QdrantClient("localhost", 6334));
         services.AddTransient<QdrantSetup>();
@@ -61,24 +66,9 @@ if (results.IsSuccess)
     var qdrantSetup = scope.ServiceProvider.GetRequiredService<QdrantSetup>();
     await qdrantSetup.InitializeAsync();
 
-    // Temp: text embeddings
-    var textEmbedder = scope.ServiceProvider.GetRequiredService<ITextEmbeddingService>();
-    var embedding = await textEmbedder.EmbedAsync("red electric guitar");
-
-    Console.WriteLine($"Embedding dims: {embedding.Length}");
-    Console.WriteLine($"First 5 values: {string.Join(", ", embedding.Take(5))}");
-    Console.WriteLine($"Magnitude: {MathF.Sqrt(embedding.Sum(x => x * x))}");
-
-    // Temp: image embeddings
-    var imageEmbedder = scope.ServiceProvider.GetRequiredService<IImageEmbeddingService>();
-    var httpClient = scope.ServiceProvider.GetRequiredService<IHttpClientFactory>().CreateClient();
-    var imageBytes = await httpClient.GetByteArrayAsync("https://m.media-amazon.com/images/I/71m-Vs8ULhL._AC_UL1500_.jpg");
-
-    var imageEmbedding = await imageEmbedder.EmbedAsync(imageBytes);
-
-    Console.WriteLine($"Image embedding dims: {imageEmbedding.Length}");
-    Console.WriteLine($"First 5 values: {string.Join(", ", imageEmbedding.Take(5))}");
-    Console.WriteLine($"Magnitude: {MathF.Sqrt(imageEmbedding.Sum(x => x * x))}");
+    // embedding pipeline
+    var pipeline = scope.ServiceProvider.GetRequiredService<IEmbeddingPipeline>();
+    await pipeline.RunAsync(maxBatches: 1);
 
     // only seed if Products table is empty
     var dbContext = scope.ServiceProvider.GetRequiredService<SearchDbContext>();

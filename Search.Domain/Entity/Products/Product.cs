@@ -15,6 +15,8 @@
         public int RatingNumber { get; set; }
         public decimal Price { get; set; }
         public string? Image { get; set; }
+        // for embedding set up
+        public bool IsEmbedded { get; set; }
 
         public ICollection<ProductCategory> Categories { get; set; } = [];
         public ICollection<ProductFeature> Features { get; set; } = [];

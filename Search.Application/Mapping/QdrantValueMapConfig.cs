@@ -15,16 +15,37 @@ namespace Search.Application.Mapping
             [typeof(float)] = v => new Value { DoubleValue = (float)v },
             [typeof(double)] = v => new Value { DoubleValue = (double)v },
             [typeof(bool)] = v => new Value { BoolValue = (bool)v },
-            [typeof(decimal)] = v => new Value { DoubleValue = (double)v }
+            // avoids unboxing issue, type should be same decimal -> boxing/unboxing -> decimal
+            [typeof(decimal)] = v => new Value { DoubleValue = (double)(decimal)v },
+            [typeof(DateTime)] = v => new Value { StringValue = ((DateTime)v).ToString("O") }
         };
         public static Value ToValue(object value)
         {
             if (value == null)
             {
-                throw new ArgumentNullException(nameof(value));
+                return new Value { NullValue = NullValue.NullValue };
             }
 
-            if (_map.TryGetValue(value.GetType(), out var converter))
+            // in case qdrant returned collections
+            if (value is System.Collections.IEnumerable enumerable && value is not string)
+            {
+                var list = new List<Value>();
+
+                foreach (var item in enumerable)
+                {
+                    list.Add(ToValue(item!));
+                }
+
+                return new Value
+                {
+                    ListValue = new ListValue { Values = { list } }
+                };
+            }
+
+            // for nullable types
+            var type = Nullable.GetUnderlyingType(value.GetType()) ?? value.GetType();
+
+            if (_map.TryGetValue(type, out var converter))
             {
                 return converter(value);
             }
