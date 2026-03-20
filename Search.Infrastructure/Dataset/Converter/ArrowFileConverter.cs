@@ -3,7 +3,7 @@ using Apache.Arrow.Ipc;
 using System.Reflection;
 using System.Text.Json;
 
-namespace Search.Infrastructure.Dataset
+namespace Search.Infrastructure.Dataset.Converter
 {
     public static class ArrowFileConverter
     {
@@ -34,6 +34,7 @@ namespace Search.Infrastructure.Dataset
             }
         }
 
+        // convert .arrow files into json if presented
         public static async Task ConvertArrowToJson(string arrowPath, string jsonPath, int fileCount)
         {
             await using var stream = File.OpenRead(arrowPath);
