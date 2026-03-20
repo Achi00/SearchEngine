@@ -16,7 +16,7 @@ namespace Embedding
      * Repository - https://huggingface.co/openai/clip-vit-large-patch14/tree/main
      * Should be in same directory as models
      * powershell commands:
-     * merges https://huggingface.co/openai/clip-vit-large-patch14/resolve/main/merges.txt -OutFile merges.txt
+     * wget https://huggingface.co/openai/clip-vit-large-patch14/resolve/main/merges.txt -OutFile merges.txt
      * wget https://huggingface.co/openai/clip-vit-large-patch14/resolve/main/vocab.json -OutFile vocab.json
      */
     public class TextEmbeddingService : ITextEmbeddingService, IDisposable
