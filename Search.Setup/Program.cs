@@ -68,7 +68,7 @@ if (results.IsSuccess)
 
     // embedding pipeline
     var pipeline = scope.ServiceProvider.GetRequiredService<IEmbeddingPipeline>();
-    await pipeline.RunAsync(maxBatches: 1);
+    await pipeline.RunAsync();
 
     // only seed if Products table is empty
     var dbContext = scope.ServiceProvider.GetRequiredService<SearchDbContext>();

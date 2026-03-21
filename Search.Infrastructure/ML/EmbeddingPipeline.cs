@@ -19,7 +19,7 @@ namespace Search.Infrastructure.ML
         private readonly IUnitOfWork _unitOfWork;
 
         // Temp: set default 100, 10 for testing
-        private const int BatchSize = 10;
+        private const int BatchSize = 100;
         private const int MaxConcurrentDownloads = 5;
 
         public EmbeddingPipeline(
@@ -39,15 +39,14 @@ namespace Search.Infrastructure.ML
         }
 
 
-        public async Task RunAsync(CancellationToken ct = default, int maxBatches = int.MaxValue)
+        public async Task RunAsync(CancellationToken ct = default)
         {
             var httpClient = _httpClientFactory.CreateClient();
             var semaphore = new SemaphoreSlim(MaxConcurrentDownloads);
 
             int totalProcessed = 0;
-            int batchCount = 0;
 
-            while (!ct.IsCancellationRequested && batchCount < maxBatches)
+            while (!ct.IsCancellationRequested)
             {
                 var batch = await _productRepository.GetUnembeddedBatchAsync(BatchSize, ct);
                 if (batch.Count == 0)
@@ -82,8 +81,6 @@ namespace Search.Infrastructure.ML
 
                 totalProcessed += successIds.Count;
                 Console.WriteLine($"Embedded {totalProcessed} products so far...");
-
-                batchCount++;
             }
         }
 
