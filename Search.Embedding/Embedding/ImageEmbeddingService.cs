@@ -2,7 +2,6 @@
 using Microsoft.Extensions.Options;
 using Microsoft.ML.OnnxRuntime;
 using Microsoft.ML.OnnxRuntime.Tensors;
-using Microsoft.ML.Tokenizers;
 using Search.Application.Interfaces.ML;
 using Search.Application.Options;
 using SixLabors.ImageSharp;
