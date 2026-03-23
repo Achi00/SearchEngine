@@ -33,13 +33,6 @@ namespace Search.Application.Services.ImageServices
             // search vectors in qdrant db
             var searchValue = await _qdrantService.SearchAsync("products_image", embedding, limit, null, ct);
 
-            // temp debug
-            foreach (var r in searchValue)
-            {
-                foreach (var kvp in r.Payload!)
-                    Console.WriteLine($"Key: {kvp.Key}, Value: {kvp.Value}, Type: {kvp.Value?.GetType().Name}");
-            }
-
             // adapt needed response type
             var results = searchValue.Adapt<IEnumerable<SearchResponse>>();
 
