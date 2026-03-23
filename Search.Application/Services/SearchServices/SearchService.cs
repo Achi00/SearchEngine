@@ -43,6 +43,9 @@ namespace Search.Application.Services.ImageServices
             // adapt needed response type
             var results = searchValue.Adapt<IEnumerable<SearchResponse>>();
 
+            foreach (var r in results)
+                Console.WriteLine($"Asin: {r.Asin}, ImageUrl: {r.ImageUrl}");
+
             return results;
         }
     }

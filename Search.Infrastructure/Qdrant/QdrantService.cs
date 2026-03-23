@@ -35,7 +35,14 @@ namespace Search.Infrastructure.Qdrant
                 Score = r.Score,
                 Payload = r.Payload.ToDictionary(
                     k => k.Key,
-                    v => (object)v.Value.StringValue)
+                     v => v.Value.KindCase switch
+                     {
+                         Value.KindOneofCase.StringValue => (object)v.Value.StringValue,
+                         Value.KindOneofCase.DoubleValue => (object)v.Value.DoubleValue,
+                         Value.KindOneofCase.IntegerValue => (object)v.Value.IntegerValue,
+                         Value.KindOneofCase.BoolValue => (object)v.Value.BoolValue,
+                         _ => (object)v.Value.StringValue
+                     })
             }).ToList().AsReadOnly();
         }
 

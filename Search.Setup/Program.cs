@@ -26,6 +26,7 @@ using Search.Persistance.Context;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 using System.Reflection;
+using static System.Net.Mime.MediaTypeNames;
 
 //Run.RunBenchmark();
 
@@ -62,7 +63,11 @@ var host = Host.CreateDefaultBuilder(args)
         services.AddScoped<ParquetFileReader>();
 
         // mapster
-        TypeAdapterConfig.GlobalSettings.Scan(Assembly.GetExecutingAssembly());
+        //TypeAdapterConfig.GlobalSettings.Scan(Assembly.GetExecutingAssembly());
+
+        var config = TypeAdapterConfig.GlobalSettings;
+        config.Scan(typeof(Search.Application.Mapping.SearchMapping).Assembly);
+        services.AddSingleton(config);
 
     })
     .Build();
