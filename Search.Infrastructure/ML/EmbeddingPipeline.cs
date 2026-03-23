@@ -1,6 +1,6 @@
 ﻿using Qdrant.Client.Grpc;
 using Search.Application.Interfaces;
-using Search.Application.Interfaces.ML;
+using Search.Application.Interfaces.ML.Embeddings;
 using Search.Application.Interfaces.Qdrant;
 using Search.Application.Interfaces.Repositories;
 using Search.Application.Interfaces.Setup;

@@ -2,7 +2,7 @@
 using Microsoft.Extensions.Options;
 using Microsoft.ML.OnnxRuntime;
 using Microsoft.ML.OnnxRuntime.Tensors;
-using Search.Application.Interfaces.ML;
+using Search.Application.Interfaces.ML.Embeddings;
 using Search.Application.Options;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
@@ -17,9 +17,9 @@ namespace Embedding
 
         public ImageEmbeddingService(IOptions<MLOptions> options)
         {
-            var modelPath = Path.Combine(options.Value.ModelsPath, "vision_model.onnx");
-            var tokenizerPath = Path.Combine(options.Value.ModelsPath, "vocab.json");
-            var mergesPath = Path.Combine(options.Value.ModelsPath, "merges.txt");
+            var modelPath = Path.Combine(options.Value.ModelsPath, "Embeddings", "vision_model.onnx");
+            var tokenizerPath = Path.Combine(options.Value.ModelsPath, "Embeddings", "vocab.json");
+            var mergesPath = Path.Combine(options.Value.ModelsPath, "Embeddings", "merges.txt");
 
             var sessionOptions = new SessionOptions();
             sessionOptions.AppendExecutionProvider_DML(0);

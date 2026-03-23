@@ -15,12 +15,37 @@ namespace Search.Infrastructure.Qdrant
             _client = client;
         }
 
+        // image search only, in case orc could not extract any texts
+        public async Task<IReadOnlyList<SearchResult>> SearchAsync(string collection, float[] vector, int limit = 10, Dictionary<string, object>? filters = null, CancellationToken ct = default)
+        {
+            var images = await _client.SearchAsync(
+                collection,
+                vector,
+                filter: BuildFilter(filters),
+                limit: (ulong)limit,
+                payloadSelector: new WithPayloadSelector { Enable = true },
+                cancellationToken: ct
+            );
+
+            return images.Select(r => new SearchResult
+            {
+                Id = r.Payload.TryGetValue("product_id", out var pid)
+                    ? Guid.Parse(pid.StringValue)
+                    : Guid.Empty,
+                Score = r.Score,
+                Payload = r.Payload.ToDictionary(
+                    k => k.Key,
+                    v => (object)v.Value.StringValue)
+            }).ToList().AsReadOnly();
+        }
+
         // hybrid search, in case ORC extracts text from image, Image - 60% | Text - 40%
         public async Task<IReadOnlyList<SearchResult>> SearchHybridAsync(
             float[] imageVector,
             float[] textVector,
             int limit = 10,
-            Dictionary<string, object>? filters = null)
+            Dictionary<string, object>? filters = null,
+            CancellationToken ct = default)
         {
             // search both collections in parallel
             var imageTask = _client.SearchAsync(
@@ -28,14 +53,16 @@ namespace Search.Infrastructure.Qdrant
                 imageVector,
                 filter: BuildFilter(filters),
                 limit: (ulong)limit,
-                payloadSelector: new WithPayloadSelector { Enable = true });
+                payloadSelector: new WithPayloadSelector { Enable = true }
+            );
 
             var textTask = _client.SearchAsync(
                 "products_text",
                 textVector,
                 filter: BuildFilter(filters),
                 limit: (ulong)limit,
-                payloadSelector: new WithPayloadSelector { Enable = true });
+                payloadSelector: new WithPayloadSelector { Enable = true }
+            );
 
             await Task.WhenAll(imageTask, textTask);
 
@@ -115,5 +142,4 @@ namespace Search.Infrastructure.Qdrant
             return filter;
         }
     }
-
 }

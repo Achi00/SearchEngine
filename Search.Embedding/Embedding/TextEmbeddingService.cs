@@ -3,8 +3,7 @@ using Microsoft.Extensions.Options;
 using Microsoft.ML.OnnxRuntime;
 using Microsoft.ML.OnnxRuntime.Tensors;
 using Microsoft.ML.Tokenizers;
-using Search.Application.Interfaces.ML;
-
+using Search.Application.Interfaces.ML.Embeddings;
 using Search.Application.Options;
 
 namespace Embedding
@@ -31,9 +30,9 @@ namespace Embedding
 
         public TextEmbeddingService(IOptions<MLOptions> options)
         {
-            var modelPath = Path.Combine(options.Value.ModelsPath, "text_model.onnx");
-            var tokenizerPath = Path.Combine(options.Value.ModelsPath, "vocab.json");
-            var mergesPath = Path.Combine(options.Value.ModelsPath, "merges.txt");
+            var modelPath = Path.Combine(options.Value.ModelsPath, "Embeddings", "text_model.onnx");
+            var tokenizerPath = Path.Combine(options.Value.ModelsPath, "Embeddings", "vocab.json");
+            var mergesPath = Path.Combine(options.Value.ModelsPath, "Embeddings", "merges.txt");
 
             var sessionOptions = new SessionOptions();
             sessionOptions.AppendExecutionProvider_DML(0);
