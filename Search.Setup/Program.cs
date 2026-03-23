@@ -1,15 +1,20 @@
-﻿using Embedding;
+﻿using BackgroundRemoval;
+using Embedding;
+using Mapster;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Qdrant.Client;
 using Search.Application.Interfaces;
-using Search.Application.Interfaces.ML;
+using Search.Application.Interfaces.ImageSearch;
+using Search.Application.Interfaces.ML.BackgroundRemoval;
+using Search.Application.Interfaces.ML.Embeddings;
 using Search.Application.Interfaces.Qdrant;
 using Search.Application.Interfaces.Repositories;
 using Search.Application.Interfaces.Setup;
 using Search.Application.Options;
+using Search.Application.Services.ImageServices;
 using Search.Application.Services.Setup;
 using Search.Infrastructure.Dataset;
 using Search.Infrastructure.Dataset.Reader;
@@ -18,6 +23,10 @@ using Search.Infrastructure.Qdrant;
 using Search.Infrastructure.Repositories;
 using Search.Persistance;
 using Search.Persistance.Context;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.PixelFormats;
+using System.Reflection;
+using static System.Net.Mime.MediaTypeNames;
 
 //Run.RunBenchmark();
 
@@ -34,12 +43,15 @@ var host = Host.CreateDefaultBuilder(args)
 
         services.AddScoped<ITextEmbeddingService, TextEmbeddingService>();
         services.AddScoped<IImageEmbeddingService, ImageEmbeddingService>();
+        services.AddScoped<IBGRemovalService, BGRemovalService>();
         services.AddScoped<ICategoryRepository, CategoryRepository>();
         services.AddScoped<IProductSeeder, ProductSeeder>();
         services.AddScoped<IProductRepository, ProductRepository>();
 
         services.AddScoped<IEmbeddingPipeline, EmbeddingPipeline>();
         services.AddScoped<IQdrantService, QdrantServices>();
+
+        services.AddScoped<ISearch, SearchService>();
 
         services.AddSingleton<QdrantClient>(sp => new QdrantClient("localhost", 6334));
         services.AddTransient<QdrantSetup>();
@@ -50,6 +62,13 @@ var host = Host.CreateDefaultBuilder(args)
         services.AddTransient<DatasetLoader>();
         services.AddScoped<ParquetFileReader>();
 
+        // mapster
+        //TypeAdapterConfig.GlobalSettings.Scan(Assembly.GetExecutingAssembly());
+
+        var config = TypeAdapterConfig.GlobalSettings;
+        config.Scan(typeof(Search.Application.Mapping.SearchMapping).Assembly);
+        services.AddSingleton(config);
+
     })
     .Build();
 
@@ -58,29 +77,54 @@ var loader = host.Services.GetRequiredService<DatasetLoader>();
 var results = await loader.LoadDatasetAsync();
 Console.WriteLine($"Downloaded: {results.Downloaded}, Skipped: {results.Skipped}, Failed: {results.Failed.Count}");
 
-// IsSuccess, determined by failed count
-if (results.IsSuccess)
+// remove image background
+using var scope = host.Services.CreateScope();
+
+// search by uploaded image
+var imageSearch = scope.ServiceProvider.GetRequiredService<ISearch>();
+
+var imageBytes = File.ReadAllBytes("C:\\Users\\Achi\\Desktop\\NIKE+AIR+MAX+2017.jpg");
+
+var result = await imageSearch.SearchByImageAsync(imageBytes);
+
+foreach (var item in result)
 {
-    using var scope = host.Services.CreateScope();
-    // create collections in Qdrant
-    var qdrantSetup = scope.ServiceProvider.GetRequiredService<QdrantSetup>();
-    await qdrantSetup.InitializeAsync();
-
-    // embedding pipeline
-    var pipeline = scope.ServiceProvider.GetRequiredService<IEmbeddingPipeline>();
-    await pipeline.RunAsync(maxBatches: 1);
-
-    // only seed if Products table is empty
-    var dbContext = scope.ServiceProvider.GetRequiredService<SearchDbContext>();
-    var hasProducts = await dbContext.Products.AnyAsync();
-    if (!hasProducts)
-    {
-        // read .parquet and seed data into sql database
-        var reader = scope.ServiceProvider.GetRequiredService<ParquetFileReader>();
-        await reader.ReadFiles();
-    }
-    else
-    {
-        Console.WriteLine("Database already seeded, skipping.");
-    }
+    Console.WriteLine(item.Asin);
+    Console.WriteLine(item.ImageUrl);
 }
+
+//var bgRemove = scope.ServiceProvider.GetRequiredService<IBGRemovalService>();
+
+//var imgBytes = File.ReadAllBytes("C:\\Users\\Achi\\Desktop\\test.png");
+//Console.WriteLine("Start image background removal");
+//var res = await bgRemove.RemoveBackgroundAsync(imgBytes);
+////File.WriteAllBytes("C:\\Users\\Achi\\Desktop\\output.png", res);
+//Console.WriteLine(res.Length);
+//Console.WriteLine("Image saved");
+
+// IsSuccess, determined by failed count
+//if (results.IsSuccess)
+//{
+//    using var scope = host.Services.CreateScope();
+//    // create collections in Qdrant
+//    var qdrantSetup = scope.ServiceProvider.GetRequiredService<QdrantSetup>();
+//    await qdrantSetup.InitializeAsync();
+
+//    // embedding pipeline
+//    var pipeline = scope.ServiceProvider.GetRequiredService<IEmbeddingPipeline>();
+//    await pipeline.RunAsync();
+
+//    // only seed if Products table is empty
+//    var dbContext = scope.ServiceProvider.GetRequiredService<SearchDbContext>();
+//    var hasProducts = await dbContext.Products.AnyAsync();
+//    if (!hasProducts)
+//    {
+//        // read .parquet and seed data into sql database
+//        var reader = scope.ServiceProvider.GetRequiredService<ParquetFileReader>();
+//        await reader.ReadFiles();
+//    }
+//    else
+//    {
+//        Console.WriteLine("Database already seeded, skipping.");
+//    }
+//}

@@ -492,3 +492,8 @@ $RECYCLE.BIN/
 /Search.Infrastructure/Dataset/0002.parquet
 /Search.Infrastructure/Dataset/0003.parquet
 /Search.Setup/appsettings.Development.json
+/Search.Embedding/Models/Embeddings/merges.txt
+/Search.Embedding/Models/Embeddings/text_model.onnx
+/Search.Embedding/Models/Embeddings/vision_model.onnx
+/Search.Embedding/Models/Embeddings/vocab.json
+/Search.Embedding/Models/BgRemoval/model_fp16.onnx
