@@ -497,3 +497,8 @@ $RECYCLE.BIN/
 /Search.Embedding/Models/Embeddings/vision_model.onnx
 /Search.Embedding/Models/Embeddings/vocab.json
 /Search.Embedding/Models/BgRemoval/model_fp16.onnx
+/Search.Embedding/Models/TextExtraction/decoder_model_merged_q4f16.onnx
+/Search.Embedding/Models/TextExtraction/embed_tokens_fp16.onnx
+/Search.Embedding/Models/TextExtraction/encoder_model_q4f16.onnx
+/Search.Embedding/Models/TextExtraction/vision_encoder_q4f16.onnx
+/Search.Embedding/Models/TextExtraction/decoder_model_merged.onnx
