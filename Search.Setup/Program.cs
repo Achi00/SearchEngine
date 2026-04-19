@@ -91,18 +91,6 @@ var loader = host.Services.GetRequiredService<DatasetLoader>();
 var results = await loader.LoadDatasetAsync();
 Console.WriteLine($"Downloaded: {results.Downloaded}, Skipped: {results.Skipped}, Failed: {results.Failed.Count}");
 
-// text extraction from image
-using var scope = host.Services.CreateScope();
-
-var textEx = scope.ServiceProvider.GetRequiredService<TextExtractionService>();
-
-var imageBytes = File.ReadAllBytes("C:\\Users\\Achi\\Desktop\\0389_v1_0.png");
-
-var res = await textEx.ExtractTextAsync(imageBytes);
-
-Console.WriteLine(res.FullText);
-
-
 // remove image background
 //using var scope = host.Services.CreateScope();
 
