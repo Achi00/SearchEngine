@@ -22,11 +22,8 @@ using Search.Infrastructure.Dataset.Reader;
 using Search.Infrastructure.ML;
 using Search.Infrastructure.Qdrant;
 using Search.Infrastructure.Repositories;
-using Search.ML.TextExtraction.FlorenceHelpers;
 using Search.Persistance;
 using Search.Persistance.Context;
-using TextExtraction;
-using TextExtraction.FlorenceHelpers;
 
 
 var host = Host.CreateDefaultBuilder(args)
@@ -59,13 +56,6 @@ var host = Host.CreateDefaultBuilder(args)
             return Tokenizers.HuggingFace.Tokenizer.Tokenizer.FromFile(path);
         });
 
-        services.AddSingleton<TextExtractionService>();
-        services.AddSingleton<TokenEmbeddingService>();
-        services.AddSingleton<FlorenceModelProvider>();
-        services.AddSingleton<FlorenceDecoder>();
-        //services.AddSingleton<Tokenizer>();
-        services.AddSingleton<FlorenceImagePreprocessor>();
-        //services.AddSingleton<InferenceSession>();
 
         services.AddScoped<ISearch, SearchService>();
 
@@ -91,22 +81,21 @@ var loader = host.Services.GetRequiredService<DatasetLoader>();
 var results = await loader.LoadDatasetAsync();
 Console.WriteLine($"Downloaded: {results.Downloaded}, Skipped: {results.Skipped}, Failed: {results.Failed.Count}");
 
-// remove image background
-//using var scope = host.Services.CreateScope();
+using var scope = host.Services.CreateScope();
 
-//// search by uploaded image
-//var imageSearch = scope.ServiceProvider.GetRequiredService<ISearch>();
+// search by uploaded image
+var imageSearch = scope.ServiceProvider.GetRequiredService<ISearch>();
 
-//var imageBytes = File.ReadAllBytes("C:\\Users\\Achi\\Desktop\\719VuO+vHOL._AC_SL1500_.jpg");
+var imageBytes = File.ReadAllBytes("C:\\Users\\Achi\\Desktop\\719VuO+vHOL._AC_SL1500_.jpg");
 
-//var result = await imageSearch.SearchByImageAsync(imageBytes);
+var result = await imageSearch.SearchByImageAsync(imageBytes);
 
-//foreach (var item in result)
-//{
-//    Console.WriteLine(item.Asin);
-//    Console.WriteLine(item.ImageUrl);
-//    Console.WriteLine(item.Score);
-//}
+foreach (var item in result)
+{
+    Console.WriteLine(item.Asin);
+    Console.WriteLine(item.ImageUrl);
+    Console.WriteLine(item.Score);
+}
 
 //var bgRemove = scope.ServiceProvider.GetRequiredService<IBGRemovalService>();
 
