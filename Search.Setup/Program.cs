@@ -1,7 +1,9 @@
 ﻿using BackgroundRemoval;
 using Embedding;
 using Mapster;
+using Meilisearch;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -24,37 +26,35 @@ using Search.Infrastructure.Qdrant;
 using Search.Infrastructure.Repositories;
 using Search.Persistance;
 using Search.Persistance.Context;
+using SixLabors.ImageSharp;
 
 
 var host = Host.CreateDefaultBuilder(args)
     .ConfigureServices((context, services) =>
     {
+        // options registration
         services.Configure<DatasetOptions>(context.Configuration.GetSection(DatasetOptions.SectionName));
         services.Configure<MLOptions>(context.Configuration.GetSection(MLOptions.SectionName));
+        // meiliSearch
+        services.Configure<MeilisearchOptions>(context.Configuration.GetSection(MeilisearchOptions.SectionName));
 
         services.AddDbContext<SearchDbContext>(opts =>
             opts.UseSqlServer(context.Configuration.GetConnectionString(nameof(ConnectionString.Default))));
 
         services.Configure<DatasetOptions>(context.Configuration.GetSection(DatasetOptions.SectionName));
 
+        // embeddings
         services.AddSingleton<ITextEmbeddingService, TextEmbeddingService>();
         services.AddSingleton<IImageEmbeddingService, ImageEmbeddingService>();
-        services.AddSingleton<IBGRemovalService, BGRemovalService>();
-        services.AddScoped<ICategoryRepository, CategoryRepository>();
-        services.AddScoped<IProductSeeder, ProductSeeder>();
-        services.AddScoped<IProductRepository, ProductRepository>();
-
         services.AddScoped<IEmbeddingPipeline, EmbeddingPipeline>();
         services.AddScoped<IQdrantService, QdrantServices>();
-
-        // text extraction
-        // use huggingface tokenizer not Microsoft.ML tokenizer
-        services.AddSingleton<Tokenizers.HuggingFace.Tokenizer.Tokenizer>(sp =>
-        {
-            var options = sp.GetRequiredService<IOptions<MLOptions>>();
-            var path = Path.Combine(options.Value.ModelsPath, "TextExtraction", "tokenizer.json");
-            return Tokenizers.HuggingFace.Tokenizer.Tokenizer.FromFile(path);
-        });
+        // image background removing
+        services.AddSingleton<IBGRemovalService, BGRemovalService>();
+        //repositories
+        services.AddScoped<ICategoryRepository, CategoryRepository>();
+        services.AddScoped<IProductRepository, ProductRepository>();
+        // setup seeding
+        services.AddScoped<IProductSeeder, ProductSeeder>();
 
 
         services.AddScoped<ISearch, SearchService>();
@@ -67,6 +67,19 @@ var host = Host.CreateDefaultBuilder(args)
         services.AddHttpClient();
         services.AddTransient<DatasetLoader>();
         services.AddScoped<ParquetFileReader>();
+
+        // meilisearch
+        services.AddSingleton<MeilisearchClient>(sp =>
+        {
+            var opts = sp.GetRequiredService<IOptions<MeilisearchOptions>>().Value;
+            return new MeilisearchClient(opts.Url, opts.ApiKey);
+        });
+        services.AddSingleton<Indexes.Index>(sp =>
+        {
+            var client = sp.GetRequiredService<MeilisearchClient>();
+            var opts = sp.GetRequiredService<IOptions<MeilisearchOptions>>().Value;
+            return client.Index(opts.IndexName);
+        });
 
         // mapster
         var config = TypeAdapterConfig.GlobalSettings;
