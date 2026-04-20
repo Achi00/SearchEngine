@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
 using Qdrant.Client;
 using Search.Application.Interfaces;
 using Search.Application.Interfaces.ImageSearch;
@@ -23,12 +24,7 @@ using Search.Infrastructure.Qdrant;
 using Search.Infrastructure.Repositories;
 using Search.Persistance;
 using Search.Persistance.Context;
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.PixelFormats;
-using System.Reflection;
-using static System.Net.Mime.MediaTypeNames;
 
-//Run.RunBenchmark();
 
 var host = Host.CreateDefaultBuilder(args)
     .ConfigureServices((context, services) =>
@@ -41,15 +37,25 @@ var host = Host.CreateDefaultBuilder(args)
 
         services.Configure<DatasetOptions>(context.Configuration.GetSection(DatasetOptions.SectionName));
 
-        services.AddScoped<ITextEmbeddingService, TextEmbeddingService>();
-        services.AddScoped<IImageEmbeddingService, ImageEmbeddingService>();
-        services.AddScoped<IBGRemovalService, BGRemovalService>();
+        services.AddSingleton<ITextEmbeddingService, TextEmbeddingService>();
+        services.AddSingleton<IImageEmbeddingService, ImageEmbeddingService>();
+        services.AddSingleton<IBGRemovalService, BGRemovalService>();
         services.AddScoped<ICategoryRepository, CategoryRepository>();
         services.AddScoped<IProductSeeder, ProductSeeder>();
         services.AddScoped<IProductRepository, ProductRepository>();
 
         services.AddScoped<IEmbeddingPipeline, EmbeddingPipeline>();
         services.AddScoped<IQdrantService, QdrantServices>();
+
+        // text extraction
+        // use huggingface tokenizer not Microsoft.ML tokenizer
+        services.AddSingleton<Tokenizers.HuggingFace.Tokenizer.Tokenizer>(sp =>
+        {
+            var options = sp.GetRequiredService<IOptions<MLOptions>>();
+            var path = Path.Combine(options.Value.ModelsPath, "TextExtraction", "tokenizer.json");
+            return Tokenizers.HuggingFace.Tokenizer.Tokenizer.FromFile(path);
+        });
+
 
         services.AddScoped<ISearch, SearchService>();
 
@@ -63,8 +69,6 @@ var host = Host.CreateDefaultBuilder(args)
         services.AddScoped<ParquetFileReader>();
 
         // mapster
-        //TypeAdapterConfig.GlobalSettings.Scan(Assembly.GetExecutingAssembly());
-
         var config = TypeAdapterConfig.GlobalSettings;
         config.Scan(typeof(Search.Application.Mapping.SearchMapping).Assembly);
         services.AddSingleton(config);
@@ -77,13 +81,12 @@ var loader = host.Services.GetRequiredService<DatasetLoader>();
 var results = await loader.LoadDatasetAsync();
 Console.WriteLine($"Downloaded: {results.Downloaded}, Skipped: {results.Skipped}, Failed: {results.Failed.Count}");
 
-// remove image background
 using var scope = host.Services.CreateScope();
 
 // search by uploaded image
 var imageSearch = scope.ServiceProvider.GetRequiredService<ISearch>();
 
-var imageBytes = File.ReadAllBytes("C:\\Users\\Achi\\Desktop\\NIKE+AIR+MAX+2017.jpg");
+var imageBytes = File.ReadAllBytes("C:\\Users\\Achi\\Desktop\\719VuO+vHOL._AC_SL1500_.jpg");
 
 var result = await imageSearch.SearchByImageAsync(imageBytes);
 
@@ -91,6 +94,7 @@ foreach (var item in result)
 {
     Console.WriteLine(item.Asin);
     Console.WriteLine(item.ImageUrl);
+    Console.WriteLine(item.Score);
 }
 
 //var bgRemove = scope.ServiceProvider.GetRequiredService<IBGRemovalService>();
