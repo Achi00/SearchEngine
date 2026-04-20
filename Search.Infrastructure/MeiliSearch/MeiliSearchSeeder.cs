@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Mapster;
+using Microsoft.EntityFrameworkCore;
 using Search.Domain.Entity.TextSearch;
 using Search.Persistance.Context;
 
@@ -30,13 +31,13 @@ namespace Search.Infrastructure.MeiliSearch
                 // Read from SQL, push to Meilisearch
                 var products = await _context.Products
                     .Include(p => p.Categories)
+                        // to reach c.Category.Name
+                        .ThenInclude(c => c.Category)
                     .Include(p => p.Features)
                     .Include(p => p.Details)
                     .ToListAsync();
 
-                var docs = products
-                    .Select(ProductMeiliDocument.FromProduct)
-                    .ToList();
+                var docs = products.Adapt<List<ProductMeiliDocument>>();
 
                 await _index.AddDocumentsInBatchesAsync(docs, batchSize: 500);
 
