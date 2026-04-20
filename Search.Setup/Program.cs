@@ -69,17 +69,10 @@ var host = Host.CreateDefaultBuilder(args)
         services.AddScoped<ParquetFileReader>();
 
         // meilisearch
-        services.AddSingleton<MeilisearchClient>(sp =>
-        {
-            var opts = sp.GetRequiredService<IOptions<MeilisearchOptions>>().Value;
-            return new MeilisearchClient(opts.Url, opts.ApiKey);
-        });
-        services.AddSingleton<Indexes.Index>(sp =>
-        {
-            var client = sp.GetRequiredService<MeilisearchClient>();
-            var opts = sp.GetRequiredService<IOptions<MeilisearchOptions>>().Value;
-            return client.Index(opts.IndexName);
-        });
+        services.AddSingleton<MeilisearchClient>(_ => new MeilisearchClient("http://localhost:7700"));
+
+        services.AddSingleton<Meilisearch.Index>(sp =>
+            sp.GetRequiredService<MeilisearchClient>().Index("products"));
 
         // mapster
         var config = TypeAdapterConfig.GlobalSettings;
