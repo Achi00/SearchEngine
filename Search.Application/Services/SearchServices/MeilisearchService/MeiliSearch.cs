@@ -3,11 +3,11 @@ using Search.Domain.Entity.TextSearch;
 
 namespace Search.Application.Services.MeilisearchService
 {
-    public class TextSearch
+    public class MeiliSearch : IMeiliSearch
     {
         private readonly Meilisearch.Index _index;
 
-        public TextSearch(Meilisearch.Index index)
+        public MeiliSearch(Meilisearch.Index index)
         {
             _index = index;
         }

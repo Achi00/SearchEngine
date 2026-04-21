@@ -1,4 +1,6 @@
-﻿namespace Search.Domain.Entity.TextSearch
+﻿using System.Text.Json.Serialization;
+
+namespace Search.Domain.Entity.TextSearch
 {
     // Meilisearch indexing
     public class ProductMeiliDocument
@@ -21,5 +23,8 @@
 
         // ProductDetails flattened key:value pairs become searchable text
         public string Details { get; set; } = "";
+
+        [JsonPropertyName("_rankingScore")]
+        public double? RankingScore { get; set; }
     }
 }
