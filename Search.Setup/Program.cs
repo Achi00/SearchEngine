@@ -3,11 +3,9 @@ using Embedding;
 using Mapster;
 using Meilisearch;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Options;
 using Qdrant.Client;
 using Search.Application.Interfaces;
 using Search.Application.Interfaces.ImageSearch;
@@ -21,12 +19,12 @@ using Search.Application.Services.ImageServices;
 using Search.Application.Services.Setup;
 using Search.Infrastructure.Dataset;
 using Search.Infrastructure.Dataset.Reader;
+using Search.Infrastructure.MeiliSearch;
 using Search.Infrastructure.ML;
 using Search.Infrastructure.Qdrant;
 using Search.Infrastructure.Repositories;
 using Search.Persistance;
 using Search.Persistance.Context;
-using SixLabors.ImageSharp;
 
 
 var host = Host.CreateDefaultBuilder(args)
@@ -73,6 +71,7 @@ var host = Host.CreateDefaultBuilder(args)
 
         services.AddSingleton<Meilisearch.Index>(sp =>
             sp.GetRequiredService<MeilisearchClient>().Index("products"));
+        services.AddScoped<MeilisearchSeeder>();
 
         // mapster
         var config = TypeAdapterConfig.GlobalSettings;
@@ -90,18 +89,22 @@ Console.WriteLine($"Downloaded: {results.Downloaded}, Skipped: {results.Skipped}
 using var scope = host.Services.CreateScope();
 
 // search by uploaded image
-var imageSearch = scope.ServiceProvider.GetRequiredService<ISearch>();
+//var imageSearch = scope.ServiceProvider.GetRequiredService<ISearch>();
 
-var imageBytes = File.ReadAllBytes("C:\\Users\\Achi\\Desktop\\719VuO+vHOL._AC_SL1500_.jpg");
+//var imageBytes = File.ReadAllBytes("C:\\Users\\Achi\\Desktop\\719VuO+vHOL._AC_SL1500_.jpg");
 
-var result = await imageSearch.SearchByImageAsync(imageBytes);
+//var result = await imageSearch.SearchByImageAsync(imageBytes);
 
-foreach (var item in result)
-{
-    Console.WriteLine(item.Asin);
-    Console.WriteLine(item.ImageUrl);
-    Console.WriteLine(item.Score);
-}
+//foreach (var item in result)
+//{
+//    Console.WriteLine(item.Asin);
+//    Console.WriteLine(item.ImageUrl);
+//    Console.WriteLine(item.Score);
+//}
+
+// meilisearch seeding
+var meiliSeeder = scope.ServiceProvider.GetRequiredService<MeilisearchSeeder>();
+await meiliSeeder.SeedAsync();
 
 //var bgRemove = scope.ServiceProvider.GetRequiredService<IBGRemovalService>();
 

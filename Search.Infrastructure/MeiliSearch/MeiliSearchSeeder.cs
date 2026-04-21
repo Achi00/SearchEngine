@@ -5,44 +5,63 @@ using Search.Persistance.Context;
 
 namespace Search.Infrastructure.MeiliSearch
 {
-    public class MeiliSearchSeeder
-    {
-        // seeding data from me ms sql database and creating indexes from product title
-        public class MeilisearchSeeder
-        {
-            private readonly Meilisearch.Index _index;
-            private readonly SearchDbContext _context;
+   // seeding data from me ms sql database and creating indexes from product title
+   public class MeilisearchSeeder
+   {
+       private readonly Meilisearch.Index _index;
+       private readonly SearchDbContext _context;
 
-            public MeilisearchSeeder(Meilisearch.Index index, SearchDbContext context)
+       public MeilisearchSeeder(Meilisearch.Index index, SearchDbContext context)
+       {
+           _index = index;
+           _context = context;
+       }
+
+       public async Task SeedAsync()
+       {
+           // configure index settings once
+           await _index.UpdateSearchableAttributesAsync(
+               ["title", "description", "categories", "features", "details", "mainCategory", "store"]);
+
+           await _index.UpdateFilterableAttributesAsync(
+               ["mainCategory", "store", "price", "averageRating"]);
+
+            const int batchSize = 500;
+            int skip = 0;
+            int totalSeeded = 0;
+
+            // read from SQL, push to Meilisearch, avoiding storing all records in memory, as single read
+            while (true)
             {
-                _index = index;
-                _context = context;
-            }
-
-            public async Task SeedAsync()
-            {
-                // Configure index settings once
-                await _index.UpdateSearchableAttributesAsync(
-                    ["title", "description", "categories", "features", "details", "mainCategory", "store"]);
-
-                await _index.UpdateFilterableAttributesAsync(
-                    ["mainCategory", "store", "price", "averageRating"]);
-
-                // Read from SQL, push to Meilisearch
-                var products = await _context.Products
+                var batch = await _context.Products
+                    .AsNoTracking()
                     .Include(p => p.Categories)
-                        // to reach c.Category.Name
                         .ThenInclude(c => c.Category)
                     .Include(p => p.Features)
                     .Include(p => p.Details)
+                    .AsSplitQuery()
+                    // only for skip/take
+                    .OrderBy(p => p.Id)
+                    .Skip(skip)
+                    .Take(batchSize)
                     .ToListAsync();
 
-                var docs = products.Adapt<List<ProductMeiliDocument>>();
+                if (batch.Count == 0) break;
 
-                await _index.AddDocumentsInBatchesAsync(docs, batchSize: 500);
+                var docs = batch.Adapt<List<ProductMeiliDocument>>();
+                await _index.AddDocumentsInBatchesAsync(docs, batchSize: 100);
 
-                Console.WriteLine($"Seeded {docs.Count} products into Meilisearch");
+                totalSeeded += batch.Count;
+                skip += batchSize;
+
+                Console.WriteLine($"Seeded {totalSeeded} products...");
+
+                // release memory between batches
+                batch.Clear();
+                docs.Clear();
             }
+
+            Console.WriteLine($"Done. Total seeded: {totalSeeded}");
         }
-    }
+   }
 }
