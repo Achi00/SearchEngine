@@ -16,9 +16,9 @@ namespace Search.Infrastructure.Qdrant
         }
 
         // image search only, in case orc could not extract any texts
-        public async Task<IReadOnlyList<SearchResult>> SearchAsync(string collection, float[] vector, int limit = 10, Dictionary<string, object>? filters = null, CancellationToken ct = default)
+        public async Task<IReadOnlyList<SearchResult>> ImageSearchAsync(string collection, float[] vector, int limit = 10, Dictionary<string, object>? filters = null, CancellationToken ct = default)
         {
-            var images = await _client.SearchAsync(
+            var results = await _client.SearchAsync(
                 collection,
                 vector,
                 filter: BuildFilter(filters),
@@ -27,7 +27,36 @@ namespace Search.Infrastructure.Qdrant
                 cancellationToken: ct
             );
 
-            return images.Select(r => new SearchResult
+            return results.Select(r => new SearchResult
+            {
+                Id = r.Payload.TryGetValue("product_id", out var pid)
+                    ? Guid.Parse(pid.StringValue)
+                    : Guid.Empty,
+                Score = r.Score,
+                Payload = r.Payload.ToDictionary(
+                    k => k.Key,
+                     v => v.Value.KindCase switch
+                     {
+                         Value.KindOneofCase.StringValue => (object)v.Value.StringValue,
+                         Value.KindOneofCase.DoubleValue => (object)v.Value.DoubleValue,
+                         Value.KindOneofCase.IntegerValue => (object)v.Value.IntegerValue,
+                         Value.KindOneofCase.BoolValue => (object)v.Value.BoolValue,
+                         _ => (object)v.Value.StringValue
+                     })
+            }).ToList().AsReadOnly();
+        }
+
+        public async Task<IReadOnlyList<SearchResult>> TextSearchAsync(string collection, float[] vector, int limit = 10, Dictionary<string, object>? filters = null, CancellationToken ct = default)
+        {
+            var results = await _client.SearchAsync(
+                "products_text",
+                vector,
+                filter: BuildFilter(filters),
+                limit: (ulong)limit,
+                payloadSelector: new WithPayloadSelector { Enable = true }
+            );
+
+            return results.Select(r => new SearchResult
             {
                 Id = r.Payload.TryGetValue("product_id", out var pid)
                     ? Guid.Parse(pid.StringValue)

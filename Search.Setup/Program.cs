@@ -16,6 +16,7 @@ using Search.Application.Interfaces.Repositories;
 using Search.Application.Interfaces.Setup;
 using Search.Application.Options;
 using Search.Application.Services.ImageServices;
+using Search.Application.Services.MeilisearchService;
 using Search.Application.Services.Setup;
 using Search.Infrastructure.Dataset;
 using Search.Infrastructure.Dataset.Reader;
@@ -72,6 +73,7 @@ var host = Host.CreateDefaultBuilder(args)
         services.AddSingleton<Meilisearch.Index>(sp =>
             sp.GetRequiredService<MeilisearchClient>().Index("products"));
         services.AddScoped<MeilisearchSeeder>();
+        services.AddScoped<IMeiliSearch, MeiliSearch>();
 
         // mapster
         var config = TypeAdapterConfig.GlobalSettings;
@@ -102,9 +104,21 @@ using var scope = host.Services.CreateScope();
 //    Console.WriteLine(item.Score);
 //}
 
+// search by text
+var textSearch = scope.ServiceProvider.GetRequiredService<ISearch>();
+var result = await textSearch.SearchByTextAsync("headsets");
+
+foreach (var item in result)
+{
+    Console.WriteLine(item.Asin);
+    Console.WriteLine(item.Title);
+    Console.WriteLine(item.ImageUrl);
+    Console.WriteLine(item.Score);
+}
+
 // meilisearch seeding
-var meiliSeeder = scope.ServiceProvider.GetRequiredService<MeilisearchSeeder>();
-await meiliSeeder.SeedAsync();
+//var meiliSeeder = scope.ServiceProvider.GetRequiredService<MeilisearchSeeder>();
+//await meiliSeeder.SeedAsync();
 
 //var bgRemove = scope.ServiceProvider.GetRequiredService<IBGRemovalService>();
 

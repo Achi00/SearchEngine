@@ -9,7 +9,15 @@ namespace Search.Application.Interfaces.Qdrant
         Task UpsertImageAsync(IReadOnlyList<VectorPoint> points);
 
         // image only - no OCR text available
-        Task<IReadOnlyList<SearchResult>> SearchAsync(
+        Task<IReadOnlyList<SearchResult>> ImageSearchAsync(
+            string collection,
+            float[] vector,
+            int limit = 10,
+            Dictionary<string, object>? filters = null,
+            CancellationToken ct = default);
+
+        // text search semantic matching
+        Task<IReadOnlyList<SearchResult>> TextSearchAsync(
             string collection,
             float[] vector,
             int limit = 10,
